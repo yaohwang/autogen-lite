@@ -7,9 +7,9 @@ from time import sleep
 from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
-from flaml import BlendSearch, tune
-from flaml.automl.logger import logger_formatter
-from flaml.tune.space import is_constant
+# from flaml import BlendSearch, tune
+# from flaml.automl.logger import logger_formatter
+# from flaml.tune.space import is_constant
 
 from .openai_utils import get_key
 
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
     _ch = logging.StreamHandler(stream=sys.stdout)
-    _ch.setFormatter(logger_formatter)
+    # _ch.setFormatter(logger_formatter)
     logger.addHandler(_ch)
 
 
@@ -90,26 +90,26 @@ class Completion(openai_Completion):
         "gpt-4-32k-0613": (0.06, 0.12),
     }
 
-    default_search_space = {
-        "model": tune.choice(
-            [
-                "text-ada-001",
-                "text-babbage-001",
-                "text-davinci-003",
-                "gpt-3.5-turbo",
-                "gpt-4",
-            ]
-        ),
-        "temperature_or_top_p": tune.choice(
-            [
-                {"temperature": tune.uniform(0, 2)},
-                {"top_p": tune.uniform(0, 1)},
-            ]
-        ),
-        "max_tokens": tune.lograndint(50, 1000),
-        "n": tune.randint(1, 100),
-        "prompt": "{prompt}",
-    }
+    # default_search_space = {
+    #     "model": tune.choice(
+    #         [
+    #             "text-ada-001",
+    #             "text-babbage-001",
+    #             "text-davinci-003",
+    #             "gpt-3.5-turbo",
+    #             "gpt-4",
+    #         ]
+    #     ),
+    #     "temperature_or_top_p": tune.choice(
+    #         [
+    #             {"temperature": tune.uniform(0, 2)},
+    #             {"top_p": tune.uniform(0, 1)},
+    #         ]
+    #     ),
+    #     "max_tokens": tune.lograndint(50, 1000),
+    #     "n": tune.randint(1, 100),
+    #     "prompt": "{prompt}",
+    # }
 
     cache_seed = 41
     cache_path = f".cache/{cache_seed}"
@@ -507,205 +507,205 @@ class Completion(openai_Completion):
                 num_completions = min(num_completions << 1, config_n)
         return result
 
-    @classmethod
-    def tune(
-        cls,
-        data: List[Dict],
-        metric: str,
-        mode: str,
-        eval_func: Callable,
-        log_file_name: Optional[str] = None,
-        inference_budget: Optional[float] = None,
-        optimization_budget: Optional[float] = None,
-        num_samples: Optional[int] = 1,
-        logging_level: Optional[int] = logging.WARNING,
-        **config,
-    ):
-        """Tune the parameters for the OpenAI API call.
+    # @classmethod
+    # def tune(
+    #     cls,
+    #     data: List[Dict],
+    #     metric: str,
+    #     mode: str,
+    #     eval_func: Callable,
+    #     log_file_name: Optional[str] = None,
+    #     inference_budget: Optional[float] = None,
+    #     optimization_budget: Optional[float] = None,
+    #     num_samples: Optional[int] = 1,
+    #     logging_level: Optional[int] = logging.WARNING,
+    #     **config,
+    # ):
+    #     """Tune the parameters for the OpenAI API call.
 
-        TODO: support parallel tuning with ray or spark.
-        TODO: support agg_method as in test
+    #     TODO: support parallel tuning with ray or spark.
+    #     TODO: support agg_method as in test
 
-        Args:
-            data (list): The list of data points.
-            metric (str): The metric to optimize.
-            mode (str): The optimization mode, "min" or "max.
-            eval_func (Callable): The evaluation function for responses.
-                The function should take a list of responses and a data point as input,
-                and return a dict of metrics. For example,
+    #     Args:
+    #         data (list): The list of data points.
+    #         metric (str): The metric to optimize.
+    #         mode (str): The optimization mode, "min" or "max.
+    #         eval_func (Callable): The evaluation function for responses.
+    #             The function should take a list of responses and a data point as input,
+    #             and return a dict of metrics. For example,
 
-        ```python
-        def eval_func(responses, **data):
-            solution = data["solution"]
-            success_list = []
-            n = len(responses)
-            for i in range(n):
-                response = responses[i]
-                succeed = is_equiv_chain_of_thought(response, solution)
-                success_list.append(succeed)
-            return {
-                "expected_success": 1 - pow(1 - sum(success_list) / n, n),
-                "success": any(s for s in success_list),
-            }
-        ```
+    #     ```python
+    #     def eval_func(responses, **data):
+    #         solution = data["solution"]
+    #         success_list = []
+    #         n = len(responses)
+    #         for i in range(n):
+    #             response = responses[i]
+    #             succeed = is_equiv_chain_of_thought(response, solution)
+    #             success_list.append(succeed)
+    #         return {
+    #             "expected_success": 1 - pow(1 - sum(success_list) / n, n),
+    #             "success": any(s for s in success_list),
+    #         }
+    #     ```
 
-            log_file_name (str, optional): The log file.
-            inference_budget (float, optional): The inference budget, dollar per instance.
-            optimization_budget (float, optional): The optimization budget, dollar in total.
-            num_samples (int, optional): The number of samples to evaluate.
-                -1 means no hard restriction in the number of trials
-                and the actual number is decided by optimization_budget. Defaults to 1.
-            logging_level (optional): logging level. Defaults to logging.WARNING.
-            **config (dict): The search space to update over the default search.
-                For prompt, please provide a string/Callable or a list of strings/Callables.
-                    - If prompt is provided for chat models, it will be converted to messages under role "user".
-                    - Do not provide both prompt and messages for chat models, but provide either of them.
-                    - A string template will be used to generate a prompt for each data instance
-                      using `prompt.format(**data)`.
-                    - A callable template will be used to generate a prompt for each data instance
-                      using `prompt(data)`.
-                For stop, please provide a string, a list of strings, or a list of lists of strings.
-                For messages (chat models only), please provide a list of messages (for a single chat prefix)
-                or a list of lists of messages (for multiple choices of chat prefix to choose from).
-                Each message should be a dict with keys "role" and "content". The value of "content" can be a string/Callable template.
+    #         log_file_name (str, optional): The log file.
+    #         inference_budget (float, optional): The inference budget, dollar per instance.
+    #         optimization_budget (float, optional): The optimization budget, dollar in total.
+    #         num_samples (int, optional): The number of samples to evaluate.
+    #             -1 means no hard restriction in the number of trials
+    #             and the actual number is decided by optimization_budget. Defaults to 1.
+    #         logging_level (optional): logging level. Defaults to logging.WARNING.
+    #         **config (dict): The search space to update over the default search.
+    #             For prompt, please provide a string/Callable or a list of strings/Callables.
+    #                 - If prompt is provided for chat models, it will be converted to messages under role "user".
+    #                 - Do not provide both prompt and messages for chat models, but provide either of them.
+    #                 - A string template will be used to generate a prompt for each data instance
+    #                   using `prompt.format(**data)`.
+    #                 - A callable template will be used to generate a prompt for each data instance
+    #                   using `prompt(data)`.
+    #             For stop, please provide a string, a list of strings, or a list of lists of strings.
+    #             For messages (chat models only), please provide a list of messages (for a single chat prefix)
+    #             or a list of lists of messages (for multiple choices of chat prefix to choose from).
+    #             Each message should be a dict with keys "role" and "content". The value of "content" can be a string/Callable template.
 
-        Returns:
-            dict: The optimized hyperparameter setting.
-            tune.ExperimentAnalysis: The tuning results.
-        """
-        logger.warning(
-            "tuning via Completion.tune is deprecated in pyautogen v0.2 and openai>=1. "
-            "flaml.tune supports tuning more generically."
-        )
-        if ERROR:
-            raise ERROR
-        space = cls.default_search_space.copy()
-        if config is not None:
-            space.update(config)
-            if "messages" in space:
-                space.pop("prompt", None)
-            temperature = space.pop("temperature", None)
-            top_p = space.pop("top_p", None)
-            if temperature is not None and top_p is None:
-                space["temperature_or_top_p"] = {"temperature": temperature}
-            elif temperature is None and top_p is not None:
-                space["temperature_or_top_p"] = {"top_p": top_p}
-            elif temperature is not None and top_p is not None:
-                space.pop("temperature_or_top_p")
-                space["temperature"] = temperature
-                space["top_p"] = top_p
-                logger.warning("temperature and top_p are not recommended to vary together.")
-        cls._max_valid_n_per_max_tokens, cls._min_invalid_n_per_max_tokens = {}, {}
-        cls.optimization_budget = optimization_budget
-        cls.inference_budget = inference_budget
-        cls._prune_hp = "best_of" if space.get("best_of", 1) != 1 else "n"
-        cls._prompts = space.get("prompt")
-        if cls._prompts is None:
-            cls._messages = space.get("messages")
-            if not all((isinstance(cls._messages, list), isinstance(cls._messages[0], (dict, list)))):
-                error_msg = "messages must be a list of dicts or a list of lists."
-                logger.error(error_msg)
-                raise AssertionError(error_msg)
-            if isinstance(cls._messages[0], dict):
-                cls._messages = [cls._messages]
-            space["messages"] = tune.choice(list(range(len(cls._messages))))
-        else:
-            if space.get("messages") is not None:
-                error_msg = "messages and prompt cannot be provided at the same time."
-                logger.error(error_msg)
-                raise AssertionError(error_msg)
-            if not isinstance(cls._prompts, (str, list)):
-                error_msg = "prompt must be a string or a list of strings."
-                logger.error(error_msg)
-                raise AssertionError(error_msg)
-            if isinstance(cls._prompts, str):
-                cls._prompts = [cls._prompts]
-            space["prompt"] = tune.choice(list(range(len(cls._prompts))))
-        cls._stops = space.get("stop")
-        if cls._stops:
-            if not isinstance(cls._stops, (str, list)):
-                error_msg = "stop must be a string, a list of strings, or a list of lists of strings."
-                logger.error(error_msg)
-                raise AssertionError(error_msg)
-            if not (isinstance(cls._stops, list) and isinstance(cls._stops[0], list)):
-                cls._stops = [cls._stops]
-            space["stop"] = tune.choice(list(range(len(cls._stops))))
-        cls._config_list = space.get("config_list")
-        if cls._config_list is not None:
-            is_const = is_constant(cls._config_list)
-            if is_const:
-                space.pop("config_list")
-        cls._metric, cls._mode = metric, mode
-        cls._total_cost = 0  # total optimization cost
-        cls._eval_func = eval_func
-        cls.data = data
-        cls.avg_input_tokens = None
+    #     Returns:
+    #         dict: The optimized hyperparameter setting.
+    #         tune.ExperimentAnalysis: The tuning results.
+    #     """
+    #     logger.warning(
+    #         "tuning via Completion.tune is deprecated in pyautogen v0.2 and openai>=1. "
+    #         "flaml.tune supports tuning more generically."
+    #     )
+    #     if ERROR:
+    #         raise ERROR
+    #     space = cls.default_search_space.copy()
+    #     if config is not None:
+    #         space.update(config)
+    #         if "messages" in space:
+    #             space.pop("prompt", None)
+    #         temperature = space.pop("temperature", None)
+    #         top_p = space.pop("top_p", None)
+    #         if temperature is not None and top_p is None:
+    #             space["temperature_or_top_p"] = {"temperature": temperature}
+    #         elif temperature is None and top_p is not None:
+    #             space["temperature_or_top_p"] = {"top_p": top_p}
+    #         elif temperature is not None and top_p is not None:
+    #             space.pop("temperature_or_top_p")
+    #             space["temperature"] = temperature
+    #             space["top_p"] = top_p
+    #             logger.warning("temperature and top_p are not recommended to vary together.")
+    #     cls._max_valid_n_per_max_tokens, cls._min_invalid_n_per_max_tokens = {}, {}
+    #     cls.optimization_budget = optimization_budget
+    #     cls.inference_budget = inference_budget
+    #     cls._prune_hp = "best_of" if space.get("best_of", 1) != 1 else "n"
+    #     cls._prompts = space.get("prompt")
+    #     if cls._prompts is None:
+    #         cls._messages = space.get("messages")
+    #         if not all((isinstance(cls._messages, list), isinstance(cls._messages[0], (dict, list)))):
+    #             error_msg = "messages must be a list of dicts or a list of lists."
+    #             logger.error(error_msg)
+    #             raise AssertionError(error_msg)
+    #         if isinstance(cls._messages[0], dict):
+    #             cls._messages = [cls._messages]
+    #         space["messages"] = tune.choice(list(range(len(cls._messages))))
+    #     else:
+    #         if space.get("messages") is not None:
+    #             error_msg = "messages and prompt cannot be provided at the same time."
+    #             logger.error(error_msg)
+    #             raise AssertionError(error_msg)
+    #         if not isinstance(cls._prompts, (str, list)):
+    #             error_msg = "prompt must be a string or a list of strings."
+    #             logger.error(error_msg)
+    #             raise AssertionError(error_msg)
+    #         if isinstance(cls._prompts, str):
+    #             cls._prompts = [cls._prompts]
+    #         space["prompt"] = tune.choice(list(range(len(cls._prompts))))
+    #     cls._stops = space.get("stop")
+    #     if cls._stops:
+    #         if not isinstance(cls._stops, (str, list)):
+    #             error_msg = "stop must be a string, a list of strings, or a list of lists of strings."
+    #             logger.error(error_msg)
+    #             raise AssertionError(error_msg)
+    #         if not (isinstance(cls._stops, list) and isinstance(cls._stops[0], list)):
+    #             cls._stops = [cls._stops]
+    #         space["stop"] = tune.choice(list(range(len(cls._stops))))
+    #     cls._config_list = space.get("config_list")
+    #     if cls._config_list is not None:
+    #         is_const = is_constant(cls._config_list)
+    #         if is_const:
+    #             space.pop("config_list")
+    #     cls._metric, cls._mode = metric, mode
+    #     cls._total_cost = 0  # total optimization cost
+    #     cls._eval_func = eval_func
+    #     cls.data = data
+    #     cls.avg_input_tokens = None
 
-        space_model = space["model"]
-        if not isinstance(space_model, str) and len(space_model) > 1:
-            # make a hierarchical search space
-            subspace = {}
-            if "max_tokens" in space:
-                subspace["max_tokens"] = space.pop("max_tokens")
-            if "temperature_or_top_p" in space:
-                subspace["temperature_or_top_p"] = space.pop("temperature_or_top_p")
-            if "best_of" in space:
-                subspace["best_of"] = space.pop("best_of")
-            if "n" in space:
-                subspace["n"] = space.pop("n")
-            choices = []
-            for model in space["model"]:
-                choices.append({"model": model, **subspace})
-            space["subspace"] = tune.choice(choices)
-            space.pop("model")
-            # start all the models with the same hp config
-            search_alg = BlendSearch(
-                cost_attr="cost",
-                cost_budget=optimization_budget,
-                metric=metric,
-                mode=mode,
-                space=space,
-            )
-            config0 = search_alg.suggest("t0")
-            points_to_evaluate = [config0]
-            for model in space_model:
-                if model != config0["subspace"]["model"]:
-                    point = config0.copy()
-                    point["subspace"] = point["subspace"].copy()
-                    point["subspace"]["model"] = model
-                    points_to_evaluate.append(point)
-            search_alg = BlendSearch(
-                cost_attr="cost",
-                cost_budget=optimization_budget,
-                metric=metric,
-                mode=mode,
-                space=space,
-                points_to_evaluate=points_to_evaluate,
-            )
-        else:
-            search_alg = BlendSearch(
-                cost_attr="cost",
-                cost_budget=optimization_budget,
-                metric=metric,
-                mode=mode,
-                space=space,
-            )
-        old_level = logger.getEffectiveLevel()
-        logger.setLevel(logging_level)
-        with diskcache.Cache(cls.cache_path) as cls._cache:
-            analysis = tune.run(
-                cls._eval,
-                search_alg=search_alg,
-                num_samples=num_samples,
-                log_file_name=log_file_name,
-                verbose=3,
-            )
-        config = analysis.best_config
-        params = cls._get_params_for_create(config)
-        if cls._config_list is not None and is_const:
-            params.pop("config_list")
-        logger.setLevel(old_level)
-        return params, analysis
+    #     space_model = space["model"]
+    #     if not isinstance(space_model, str) and len(space_model) > 1:
+    #         # make a hierarchical search space
+    #         subspace = {}
+    #         if "max_tokens" in space:
+    #             subspace["max_tokens"] = space.pop("max_tokens")
+    #         if "temperature_or_top_p" in space:
+    #             subspace["temperature_or_top_p"] = space.pop("temperature_or_top_p")
+    #         if "best_of" in space:
+    #             subspace["best_of"] = space.pop("best_of")
+    #         if "n" in space:
+    #             subspace["n"] = space.pop("n")
+    #         choices = []
+    #         for model in space["model"]:
+    #             choices.append({"model": model, **subspace})
+    #         space["subspace"] = tune.choice(choices)
+    #         space.pop("model")
+    #         # start all the models with the same hp config
+    #         search_alg = BlendSearch(
+    #             cost_attr="cost",
+    #             cost_budget=optimization_budget,
+    #             metric=metric,
+    #             mode=mode,
+    #             space=space,
+    #         )
+    #         config0 = search_alg.suggest("t0")
+    #         points_to_evaluate = [config0]
+    #         for model in space_model:
+    #             if model != config0["subspace"]["model"]:
+    #                 point = config0.copy()
+    #                 point["subspace"] = point["subspace"].copy()
+    #                 point["subspace"]["model"] = model
+    #                 points_to_evaluate.append(point)
+    #         search_alg = BlendSearch(
+    #             cost_attr="cost",
+    #             cost_budget=optimization_budget,
+    #             metric=metric,
+    #             mode=mode,
+    #             space=space,
+    #             points_to_evaluate=points_to_evaluate,
+    #         )
+    #     else:
+    #         search_alg = BlendSearch(
+    #             cost_attr="cost",
+    #             cost_budget=optimization_budget,
+    #             metric=metric,
+    #             mode=mode,
+    #             space=space,
+    #         )
+    #     old_level = logger.getEffectiveLevel()
+    #     logger.setLevel(logging_level)
+    #     with diskcache.Cache(cls.cache_path) as cls._cache:
+    #         analysis = tune.run(
+    #             cls._eval,
+    #             search_alg=search_alg,
+    #             num_samples=num_samples,
+    #             log_file_name=log_file_name,
+    #             verbose=3,
+    #         )
+    #     config = analysis.best_config
+    #     params = cls._get_params_for_create(config)
+    #     if cls._config_list is not None and is_const:
+    #         params.pop("config_list")
+    #     logger.setLevel(old_level)
+    #     return params, analysis
 
     @classmethod
     def create(
@@ -1195,6 +1195,6 @@ class Completion(openai_Completion):
 class ChatCompletion(Completion):
     """(openai<1) A class for OpenAI API ChatCompletion. Share the same API as Completion."""
 
-    default_search_space = Completion.default_search_space.copy()
-    default_search_space["model"] = tune.choice(["gpt-3.5-turbo", "gpt-4"])
+    # default_search_space = Completion.default_search_space.copy()
+    # default_search_space["model"] = tune.choice(["gpt-3.5-turbo", "gpt-4"])
     openai_completion_class = not ERROR and openai.ChatCompletion
