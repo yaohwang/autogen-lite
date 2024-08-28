@@ -7,8 +7,11 @@ import threading
 import uuid
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union
 
-from openai import AzureOpenAI, OpenAI
-from openai.types.chat import ChatCompletion
+# from openai import AzureOpenAI, OpenAI
+# from openai.types.chat import ChatCompletion
+AzureOpenAI = Any
+OpenAI = Any
+ChatCompletion = Any
 
 from autogen.logger.base_logger import BaseLogger
 from autogen.logger.logger_utils import get_current_ts, to_dict
@@ -18,7 +21,6 @@ from .base_logger import LLMConfig
 if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
     from autogen.oai.anthropic import AnthropicClient
-    from autogen.oai.bedrock import BedrockClient
     from autogen.oai.cohere import CohereClient
     from autogen.oai.gemini import GeminiClient
     from autogen.oai.groq import GroqClient
@@ -216,7 +218,6 @@ class FileLogger(BaseLogger):
             | TogetherClient
             | GroqClient
             | CohereClient
-            | BedrockClient
         ),
         wrapper: OpenAIWrapper,
         init_args: Dict[str, Any],

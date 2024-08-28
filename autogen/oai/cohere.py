@@ -30,7 +30,7 @@ from typing import Any, Dict, List
 
 from cohere import Client as Cohere
 from cohere.types import ToolParameterDefinitionsValue, ToolResult
-from flaml.automl.logger import logger_formatter
+# from flaml.automl.logger import logger_formatter
 from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
     _ch = logging.StreamHandler(stream=sys.stdout)
-    _ch.setFormatter(logger_formatter)
+    # _ch.setFormatter(logger_formatter)
     logger.addHandler(_ch)
 
 

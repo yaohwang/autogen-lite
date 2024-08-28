@@ -5,8 +5,11 @@ import uuid
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, TypeVar, Union
 
-from openai import AzureOpenAI, OpenAI
-from openai.types.chat import ChatCompletion
+# from openai import AzureOpenAI, OpenAI
+# from openai.types.chat import ChatCompletion
+AzureOpenAI = Any
+OpenAI = Any
+ChatCompletion = Any
 
 if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper

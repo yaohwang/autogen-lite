@@ -6,7 +6,7 @@ import sys
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 
-from flaml.automl.logger import logger_formatter
+# from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
 
 from autogen.cache import Cache
@@ -84,18 +84,11 @@ try:
 except ImportError as e:
     cohere_import_exception = e
 
-try:
-    from autogen.oai.bedrock import BedrockClient
-
-    bedrock_import_exception: Optional[ImportError] = None
-except ImportError as e:
-    bedrock_import_exception = e
-
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
     _ch = logging.StreamHandler(stream=sys.stdout)
-    _ch.setFormatter(logger_formatter)
+    # _ch.setFormatter(logger_formatter)
     logger.addHandler(_ch)
 
 LEGACY_DEFAULT_CACHE_SEED = 41
@@ -464,7 +457,7 @@ class OpenAIWrapper:
     def _configure_openai_config_for_bedrock(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
         """Update openai_config with AWS credentials from config."""
         required_keys = ["aws_access_key", "aws_secret_key", "aws_region"]
-        optional_keys = ["aws_session_token", "aws_profile_name"]
+        optional_keys = ["aws_session_token"]
         for key in required_keys:
             if key in config:
                 openai_config[key] = config[key]
@@ -526,14 +519,8 @@ class OpenAIWrapper:
                 self._clients.append(client)
             elif api_type is not None and api_type.startswith("cohere"):
                 if cohere_import_exception:
-                    raise ImportError("Please install `cohere` to use the Cohere API.")
+                    raise ImportError("Please install `cohere` to use the Groq API.")
                 client = CohereClient(**openai_config)
-                self._clients.append(client)
-            elif api_type is not None and api_type.startswith("bedrock"):
-                self._configure_openai_config_for_bedrock(config, openai_config)
-                if bedrock_import_exception:
-                    raise ImportError("Please install `boto3` to use the Amazon Bedrock API.")
-                client = BedrockClient(**openai_config)
                 self._clients.append(client)
             else:
                 client = OpenAI(**openai_config)
